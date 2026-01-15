@@ -1,0 +1,79 @@
+#!/bin/bash
+
+########################################################
+#                                                      #
+# ###########Script for Admin deploy ###################
+#                                                      #
+########################################################
+
+set -e
+
+# Ask users to enter build file name
+
+read -p "Enter the Admin build file name: " ZIP_FILENAME
+
+
+# Base paths
+
+ZIP_FILE="/home/yogindra/$ZIP_FILENAME"
+EXTRACT_DIR="/home/yogindra/legacy-admin-temp"
+#LEGACY_BACKUP="/home/yogindra/legacy-admin-tempbckup"         			#remove hash if backup needed for dir. legacy-admin-temp
+WWW_DIR="/var/www"
+TARGET_DIR="$WWW_DIR/unaadmin"
+ROLLBACK_DIR="$WWW_DIR/unaadmin-rollback"
+ROLLBACK2_DIR="$WWW_DIR/unaadmin-rollback2"
+
+#1
+echo "copying contents from legacy-admin-temp to legacy-admin-tempbckup"   	#remove hash if backup needed for dir. legacy-client-temp
+cp -a "$EXTRACT_DIR/." "$LEGACY_BACKUP"/                                     	#remove hash if backup needed for dir. legacy-client-temp
+
+
+
+# 1
+echo "Unzipping '$ZIP_FILE' to '$EXTRACT_DIR'..."
+unzip "$ZIP_FILE" -d  "$EXTRACT_DIR"
+
+# 2
+cd "$WWW_DIR"
+
+# 3
+echo "Removing content of $ROLLBACK2_DIR..."
+rm -rf "$ROLLBACK2_DIR"/*
+rm -rf "$ROLLBACK2_DIR"/.* 2>/dev/null || true #excluding . and ..
+
+# 4
+echo "Copying contents from $ROLLBACK_DIR to $ROLLBACK2_DIR... "
+echo "ROLLBACK_DIR: $ROLLBACK_DIR"
+cp -a "$ROLLBACK_DIR/." "$ROLLBACK2_DIR"/
+
+# 5 Remove contents from $ROLLBACK_DIR
+echo "Removing content from $ROLLBACK_DIR..."
+rm -rf "$ROLLBACK_DIR"/*
+rm -rf "$ROLLBACK_DIR"/.* 2>/dev/null || true #excluding . and ..
+
+# 6 Copy contents from unaadmin to unaadmin-rollback
+echo "copying from $TARGET_DIR to $ROLLBACK_DIR..."
+cp -a "$TARGET_DIR/." "$ROLLBACK_DIR"/
+
+# 7 Remove content from unaadmin
+echo "Removing content from $TARGET_DIR"
+rm -rf "$TARGET_DIR"/*
+rm -rf "$TARGET_DIR"/.* 2>/dev/null || true
+
+# 8 copy new build content to unaadmin
+echo "copying new build from $EXTRACT_DIR to $TARGET_DIR..."
+ 
+cp -a "$EXTRACT_DIR/." "$TARGET_DIR"/
+
+# 9 change ownership
+chown -R yogindra:yogindra "$TARGET_DIR"
+
+#10 Nginx config.                                                          
+#echo "Testing Nginx config..."                                            #remove hash during actual deployment
+#sudo nginx -t                                                             #remove hash during actual deployment
+
+#11 Reload Nginx                                                           
+#sudo nginx -s reload                                                      #remove hash during actual deployment
+
+#12 Nginx service status
+#sudo systemctl status nginx.service                                       #remove hash during actual deployment
